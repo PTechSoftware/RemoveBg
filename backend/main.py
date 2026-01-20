@@ -5,7 +5,29 @@ from PIL import Image
 import io
 import uvicorn
 
-app = FastAPI()
+app = FastAPI(
+    title="Background Remover API",
+    description="""
+    ## AI-Powered Background Removal Service
+    
+    This API provides automated background removal using the U2NET deep learning model.
+    
+    ### Features
+    * **Original Mode**: Preserves original image dimensions
+    * **Optimized Mode**: Resizes to ~500px (maintains aspect ratio, reduces file size)
+    * **Custom Mode**: Specify exact width and height
+    
+    ### Supported Formats
+    * Input: PNG, JPG, JPEG, WEBP
+    * Output: PNG with transparency
+    
+    ### Processing
+    All images are processed using the rembg library with U2NET model for high-quality background removal.
+    """,
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
 
 # Configure CORS
 app.add_middleware(
@@ -16,17 +38,66 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
+@app.get(
+    "/",
+    summary="Health check",
+    description="Check if the API is running",
+    tags=["System"]
+)
 async def health_check():
-    return {"status": "running"}
+    """
+    Simple health check endpoint.
+    
+    Returns a JSON object indicating the API status.
+    """
+    return {"status": "running", "version": "1.0.0"}
 
-@app.post("/process-image")
+@app.post(
+    "/process-image",
+    summary="Remove background from image",
+    description="Upload an image and receive a PNG with transparent background",
+    response_description="PNG image with removed background",
+    tags=["Image Processing"]
+)
 async def process_image(
-    file: UploadFile = File(...),
-    mode: str = Form("original"), # "original", "custom", or "optimized"
-    width: int = Form(None),
-    height: int = Form(None)
+    file: UploadFile = File(..., description="Image file to process (PNG, JPG, WEBP)"),
+    mode: str = Form("original", description="Processing mode: 'original', 'optimized', or 'custom'"),
+    width: int = Form(None, description="Target width in pixels (only for custom mode)"),
+    height: int = Form(None, description="Target height in pixels (only for custom mode)")
 ):
+    """
+    Remove background from an uploaded image using AI.
+    
+    **Modes:**
+    - `original`: Keep original dimensions
+    - `optimized`: Resize to ~500px max dimension (maintains aspect ratio)
+    - `custom`: Resize to specific width x height
+    
+    **Example using curl:**
+    ```bash
+    # Original size
+    curl -X POST "http://localhost:8000/process-image" \\
+      -F "file=@image.jpg" \\
+      -F "mode=original" \\
+      --output result.png
+    
+    # Optimized (500px)
+    curl -X POST "http://localhost:8000/process-image" \\
+      -F "file=@image.jpg" \\
+      -F "mode=optimized" \\
+      --output result.png
+    
+    # Custom size
+    curl -X POST "http://localhost:8000/process-image" \\
+      -F "file=@image.jpg" \\
+      -F "mode=custom" \\
+      -F "width=800" \\
+      -F "height=600" \\
+      --output result.png
+    ```
+    
+    **Returns:** PNG image file with transparent background
+    """
     try:
         # Read image
         contents = await file.read()
