@@ -1,0 +1,9 @@
+fastapi
+python-multipart
+uvicorn
+rembg
+onnxruntime
+pillow
+numpy
+aiofiles
+requests
