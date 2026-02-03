@@ -111,7 +111,7 @@ const formData = new FormData();
 formData.append('file', fileInput.files[0]);
 formData.append('mode', 'optimized');
 
-const response = await fetch('http://localhost:8000/process-image', {
+const response = await fetch(`http://${window.location.hostname}:8000/process-image`, {
   method: 'POST',
   body: formData
 });
