@@ -1,4 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
 from fastapi.middleware.cors import CORSMiddleware
 from rembg import remove
 from PIL import Image
@@ -39,7 +42,7 @@ app.add_middleware(
 )
 
 @app.get(
-    "/",
+    "/api/health",
     summary="Health check",
     description="Check if the API is running",
     tags=["System"]
@@ -143,6 +146,23 @@ async def process_image(
     except Exception as e:
         print(f"Error processing image: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# Serve static files (Frontend)
+# We check if static directory exists (it will in the docker container)
+if os.path.isdir("static"):
+    # Mount assets folder (handled by Vite build)
+    if os.path.isdir("static/assets"):
+        app.mount("/assets", StaticFiles(directory="static/assets"), name="assets")
+    
+    # Catch-all route for SPA (React Router)
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        # Allow API routes to pass through (though they are matched first usually)
+        if full_path.startswith("api") or full_path.startswith("docs") or full_path.startswith("openapi.json"):
+             raise HTTPException(status_code=404, detail="Not Found")
+        
+        # Serve index.html
+        return FileResponse("static/index.html")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

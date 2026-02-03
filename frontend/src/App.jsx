@@ -76,7 +76,7 @@ function App() {
             }
 
             try {
-                const response = await fetch(`http://${window.location.hostname}:8000/process-image`, {
+                const response = await fetch('/process-image', {
                     method: 'POST',
                     body: formData,
                 });
@@ -149,7 +149,7 @@ function App() {
                             </div>
                         </div>
                         <a
-                            href={`http://${window.location.hostname}:8000/docs`}
+                            href="/docs"
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{

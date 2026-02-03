@@ -9,6 +9,11 @@ export default defineConfig({
     port: 5173,
     watch: {
       usePolling: true
+    },
+    proxy: {
+      '/process-image': 'http://localhost:8000',
+      '/docs': 'http://localhost:8000',
+      '/openapi.json': 'http://localhost:8000'
     }
   }
 })
