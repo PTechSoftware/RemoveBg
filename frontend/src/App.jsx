@@ -1,5 +1,6 @@
-import React, { useState, useRef } from 'react';
-import { Upload, Download, Trash2, Loader2, Image as ImageIcon, Settings2, X, Sparkles, Target } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Upload, Download, Trash2, Loader2, Image as ImageIcon, Settings2, X, Sparkles, Target, Eraser, FileArchive } from 'lucide-react';
+import JSZip from 'jszip';
 
 function App() {
     const [files, setFiles] = useState([]);
@@ -9,7 +10,9 @@ function App() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [beautify, setBeautify] = useState(false);
     const [sobelRefinement, setSobelRefinement] = useState(true);
+    const [removeBackground, setRemoveBackground] = useState(true);
     const [dragActive, setDragActive] = useState(false);
+    const [overallProgress, setOverallProgress] = useState(0);
     const fileInputRef = useRef(null);
 
     const handleFileSelect = (e) => {
@@ -60,45 +63,58 @@ function App() {
 
     const processQueue = async () => {
         setIsProcessing(true);
+        setOverallProgress(0);
 
-        for (let i = 0; i < files.length; i++) {
-            const currentFile = files[i];
-            if (currentFile.status === 'completed') continue;
+        const pendingFiles = files.filter(f => f.status !== 'completed');
+        const CONCURRENCY_LIMIT = 4; // Process 4 images at a time for speed
+        const chunks = [];
 
-            setFiles(prev => prev.map(f =>
-                f.id === currentFile.id ? { ...f, status: 'processing' } : f
-            ));
+        for (let i = 0; i < pendingFiles.length; i += CONCURRENCY_LIMIT) {
+            chunks.push(pendingFiles.slice(i, i + CONCURRENCY_LIMIT));
+        }
 
-            const formData = new FormData();
-            formData.append('file', currentFile.file);
-            formData.append('mode', mode);
-            if (mode === 'custom') {
-                formData.append('width', width);
-                formData.append('height', height);
-            }
-            formData.append('beautify', beautify);
-            formData.append('sobel_refinement', sobelRefinement);
+        let processedCount = files.filter(f => f.status === 'completed').length;
 
-            try {
-                const response = await fetch('/process-image', {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                if (!response.ok) throw new Error('Processing failed');
-
-                const blob = await response.blob();
-                const resultUrl = URL.createObjectURL(blob);
-
+        for (const chunk of chunks) {
+            await Promise.all(chunk.map(async (currentFile) => {
                 setFiles(prev => prev.map(f =>
-                    f.id === currentFile.id ? { ...f, status: 'completed', result: resultUrl } : f
+                    f.id === currentFile.id ? { ...f, status: 'processing' } : f
                 ));
-            } catch (error) {
-                console.error(error);
-                setFiles(prev => prev.map(f =>
-                    f.id === currentFile.id ? { ...f, status: 'error' } : f
-                ));
-            }
+
+                const formData = new FormData();
+                formData.append('file', currentFile.file);
+                formData.append('mode', mode);
+                if (mode === 'custom') {
+                    formData.append('width', width);
+                    formData.append('height', height);
+                }
+                formData.append('beautify', beautify);
+                formData.append('sobel_refinement', sobelRefinement);
+                formData.append('remove_background', removeBackground);
+
+                try {
+                    const response = await fetch('/process-image', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (!response.ok) throw new Error('Processing failed');
+
+                    const blob = await response.blob();
+                    const resultUrl = URL.createObjectURL(blob);
+
+                    setFiles(prev => prev.map(f =>
+                        f.id === currentFile.id ? { ...f, status: 'completed', result: resultUrl, resultBlob: blob } : f
+                    ));
+                } catch (error) {
+                    console.error(error);
+                    setFiles(prev => prev.map(f =>
+                        f.id === currentFile.id ? { ...f, status: 'error' } : f
+                    ));
+                }
+                processedCount++;
+                setOverallProgress((processedCount / files.length) * 100);
+            }));
         }
 
         setIsProcessing(false);
@@ -113,12 +129,29 @@ function App() {
         document.body.removeChild(a);
     };
 
-    const downloadAll = () => {
+    const downloadAll = async () => {
+        const zip = new JSZip();
+        let hasFiles = false;
+
         files.forEach(file => {
-            if (file.result) {
-                downloadImage(file.result, file.file.name);
+            if (file.resultBlob) {
+                const fileName = `proc_${file.file.name.replace(/\.[^/.]+$/, "")}.png`;
+                zip.file(fileName, file.resultBlob);
+                hasFiles = true;
             }
         });
+
+        if (hasFiles) {
+            const content = await zip.generateAsync({ type: "blob" });
+            const url = URL.createObjectURL(content);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "processed_images.zip";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
     };
 
     const completedCount = files.filter(f => f.status === 'completed').length;
@@ -146,12 +179,30 @@ function App() {
                                 <ImageIcon size={24} color="white" />
                             </div>
                             <div>
-                                <h1 style={{ fontSize: '24px', fontWeight: '700', margin: 0 }}>Background Remover</h1>
+                                <h1 style={{ fontSize: '24px', fontWeight: '700', margin: 0 }}>Image Processor</h1>
                                 <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
-                                    AI-powered batch processing
+                                    AI-powered batch processing & enhancement
                                 </p>
                             </div>
                         </div>
+
+                        {isProcessing && (
+                            <div style={{ flex: 1, maxWidth: '400px', margin: '0 40px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                    <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--accent)' }}>Processing...</span>
+                                    <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--accent)' }}>{Math.round(overallProgress)}%</span>
+                                </div>
+                                <div style={{ height: '6px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '3px', overflow: 'hidden' }}>
+                                    <div style={{
+                                        height: '100%',
+                                        width: `${overallProgress}%`,
+                                        backgroundColor: 'var(--accent)',
+                                        transition: 'width 0.3s ease',
+                                        boxShadow: '0 0 10px var(--accent)'
+                                    }} />
+                                </div>
+                            </div>
+                        )}
                         <a
                             href="/docs"
                             target="_blank"
@@ -401,7 +452,9 @@ function App() {
                                             borderRadius: '8px',
                                             cursor: 'pointer',
                                             transition: 'all 0.2s ease',
-                                            width: '100%'
+                                            width: '100%',
+                                            opacity: removeBackground ? 1 : 0.5,
+                                            pointerEvents: removeBackground ? 'auto' : 'none'
                                         }}
                                     >
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -419,6 +472,39 @@ function App() {
                                             justifyContent: 'center'
                                         }}>
                                             {sobelRefinement && <div style={{ width: '8px', height: '4px', borderLeft: '2px solid white', borderBottom: '2px solid white', transform: 'rotate(-45deg)', marginBottom: '2px' }} />}
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        onClick={() => setRemoveBackground(!removeBackground)}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            padding: '12px',
+                                            backgroundColor: removeBackground ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-tertiary)',
+                                            border: `1px solid ${removeBackground ? 'var(--accent)' : 'var(--border)'}`,
+                                            borderRadius: '8px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease',
+                                            width: '100%'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <Eraser size={16} color={removeBackground ? 'var(--accent)' : 'var(--text-secondary)'} />
+                                            <span style={{ fontSize: '13px', fontWeight: '500', color: removeBackground ? 'var(--text-primary)' : 'var(--text-secondary)' }}>Remove Background</span>
+                                        </div>
+                                        <div style={{
+                                            width: '18px',
+                                            height: '18px',
+                                            borderRadius: '4px',
+                                            border: `2px solid ${removeBackground ? 'var(--accent)' : 'var(--border)'}`,
+                                            backgroundColor: removeBackground ? 'var(--accent)' : 'transparent',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}>
+                                            {removeBackground && <div style={{ width: '8px', height: '4px', borderLeft: '2px solid white', borderBottom: '2px solid white', transform: 'rotate(-45deg)', marginBottom: '2px' }} />}
                                         </div>
                                     </button>
                                 </div>
@@ -469,11 +555,14 @@ function App() {
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        gap: '8px'
+                                        gap: '8px',
+                                        transition: 'all 0.2s ease'
                                     }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-primary)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
                                 >
-                                    <Download size={16} />
-                                    Download All ({completedCount})
+                                    <FileArchive size={16} color="var(--accent)" />
+                                    Download ZIP ({completedCount})
                                 </button>
                             )}
 
@@ -641,7 +730,7 @@ function App() {
                                                     marginBottom: '6px',
                                                     fontWeight: '500'
                                                 }}>
-                                                    PROCESSED
+                                                    {removeBackground ? 'REMOVED BG' : 'ENHANCED'}
                                                 </div>
                                                 <div
                                                     className="checkerboard"

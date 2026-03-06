@@ -69,7 +69,8 @@ async def process_image(
     width: int = Form(None, description="Target width in pixels (only for custom mode)"),
     height: int = Form(None, description="Target height in pixels (only for custom mode)"),
     beautify: bool = Form(False, description="Apply beautification for catalog quality"),
-    sobel_refinement: bool = Form(True, description="Use Sobel filtering to reinforce contours")
+    sobel_refinement: bool = Form(True, description="Use Sobel filtering to reinforce contours"),
+    remove_background: bool = Form(True, description="Whether to remove the background")
 ):
     """
     Remove background from an uploaded image using AI.
@@ -117,13 +118,17 @@ async def process_image(
         if beautify:
             input_image = ImageAgent.beautify(input_image)
 
-        # 2. Remove background using rembg
-        # We use alpha_matting=True as a base reinforcement if sobel_refinement is on
-        output_image = remove(input_image, alpha_matting=sobel_refinement)
+        # 2. Background Removal & Reinforcement
+        if remove_background:
+            # Remove background using rembg
+            output_image = remove(input_image, alpha_matting=sobel_refinement)
 
-        # 3. Sobel Edge Reinforcement
-        if sobel_refinement:
-            output_image = ImageAgent.refine_mask_with_sobel(input_image, output_image)
+            # 3. Sobel Edge Reinforcement
+            if sobel_refinement:
+                output_image = ImageAgent.refine_mask_with_sobel(input_image, output_image)
+        else:
+            # If we don't remove background, the output is just the (optionally beautified) input
+            output_image = input_image
 
         # Handle Resizing
         if mode == "custom" and width is not None and height is not None:
@@ -156,7 +161,7 @@ async def process_image(
         return StreamingResponse(
             img_byte_arr, 
             media_type="image/png",
-            headers={"Content-Disposition": f"attachment; filename=removed_{file.filename}"}
+            headers={"Content-Disposition": f"attachment; filename=proc_{file.filename}"}
         )
 
     except Exception as e:
