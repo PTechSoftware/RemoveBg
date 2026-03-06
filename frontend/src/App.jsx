@@ -66,7 +66,7 @@ function App() {
         setOverallProgress(0);
 
         const pendingFiles = files.filter(f => f.status !== 'completed');
-        const CONCURRENCY_LIMIT = 4; // Process 4 images at a time for speed
+        const CONCURRENCY_LIMIT = 1; // Process 4 images at a time for speed
         const chunks = [];
 
         for (let i = 0; i < pendingFiles.length; i += CONCURRENCY_LIMIT) {
