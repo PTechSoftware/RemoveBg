@@ -11,9 +11,9 @@ export default defineConfig({
       usePolling: true
     },
     proxy: {
-      '/process-image': 'http://localhost:8000',
-      '/docs': 'http://localhost:8000',
-      '/openapi.json': 'http://localhost:8000'
+      '/process-image': 'http://backend:8000',
+      '/docs': 'http://backend:8000',
+      '/openapi.json': 'http://backend:8000'
     }
   }
 })

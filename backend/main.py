@@ -7,6 +7,7 @@ from rembg import remove
 from PIL import Image
 import io
 import uvicorn
+from image_utils import ImageAgent
 
 app = FastAPI(
     title="Background Remover API",
@@ -66,10 +67,16 @@ async def process_image(
     file: UploadFile = File(..., description="Image file to process (PNG, JPG, WEBP)"),
     mode: str = Form("original", description="Processing mode: 'original', 'optimized', or 'custom'"),
     width: int = Form(None, description="Target width in pixels (only for custom mode)"),
-    height: int = Form(None, description="Target height in pixels (only for custom mode)")
+    height: int = Form(None, description="Target height in pixels (only for custom mode)"),
+    beautify: bool = Form(False, description="Apply beautification for catalog quality"),
+    sobel_refinement: bool = Form(True, description="Use Sobel filtering to reinforce contours")
 ):
     """
     Remove background from an uploaded image using AI.
+    
+    **Features:**
+    - `sobel_reinforcement`: Uses Sobel filtering to refine the edges of the background removal.
+    - `beautify`: Enchances colors, contrast and sharpness for a premium catalog look.
     
     **Modes:**
     - `original`: Keep original dimensions
@@ -106,8 +113,17 @@ async def process_image(
         contents = await file.read()
         input_image = Image.open(io.BytesIO(contents))
 
-        # Remove background using rembg
-        output_image = remove(input_image)
+        # 1. Beautification Agent (Optional)
+        if beautify:
+            input_image = ImageAgent.beautify(input_image)
+
+        # 2. Remove background using rembg
+        # We use alpha_matting=True as a base reinforcement if sobel_refinement is on
+        output_image = remove(input_image, alpha_matting=sobel_refinement)
+
+        # 3. Sobel Edge Reinforcement
+        if sobel_refinement:
+            output_image = ImageAgent.refine_mask_with_sobel(input_image, output_image)
 
         # Handle Resizing
         if mode == "custom" and width is not None and height is not None:

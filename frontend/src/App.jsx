@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, Download, Trash2, Loader2, Image as ImageIcon, Settings2, X } from 'lucide-react';
+import { Upload, Download, Trash2, Loader2, Image as ImageIcon, Settings2, X, Sparkles, Target } from 'lucide-react';
 
 function App() {
     const [files, setFiles] = useState([]);
@@ -7,6 +7,8 @@ function App() {
     const [width, setWidth] = useState(1920);
     const [height, setHeight] = useState(1080);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [beautify, setBeautify] = useState(false);
+    const [sobelRefinement, setSobelRefinement] = useState(true);
     const [dragActive, setDragActive] = useState(false);
     const fileInputRef = useRef(null);
 
@@ -74,6 +76,8 @@ function App() {
                 formData.append('width', width);
                 formData.append('height', height);
             }
+            formData.append('beautify', beautify);
+            formData.append('sobel_refinement', sobelRefinement);
 
             try {
                 const response = await fetch('/process-image', {
@@ -339,6 +343,86 @@ function App() {
                                     </div>
                                 </div>
                             )}
+
+                            {/* Additional Features */}
+                            <div style={{ marginBottom: '24px' }}>
+                                <label style={{
+                                    display: 'block',
+                                    fontSize: '13px',
+                                    fontWeight: '500',
+                                    marginBottom: '12px',
+                                    color: 'var(--text-secondary)'
+                                }}>
+                                    Enhancements
+                                </label>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <button
+                                        onClick={() => setBeautify(!beautify)}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            padding: '12px',
+                                            backgroundColor: beautify ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-tertiary)',
+                                            border: `1px solid ${beautify ? 'var(--accent)' : 'var(--border)'}`,
+                                            borderRadius: '8px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease',
+                                            width: '100%'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <Sparkles size={16} color={beautify ? 'var(--accent)' : 'var(--text-secondary)'} />
+                                            <span style={{ fontSize: '13px', fontWeight: '500', color: beautify ? 'var(--text-primary)' : 'var(--text-secondary)' }}>Catalog Beautifier</span>
+                                        </div>
+                                        <div style={{
+                                            width: '18px',
+                                            height: '18px',
+                                            borderRadius: '4px',
+                                            border: `2px solid ${beautify ? 'var(--accent)' : 'var(--text-secondary)'}`,
+                                            backgroundColor: beautify ? 'var(--accent)' : 'transparent',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}>
+                                            {beautify && <div style={{ width: '8px', height: '4px', borderLeft: '2px solid white', borderBottom: '2px solid white', transform: 'rotate(-45deg)', marginBottom: '2px' }} />}
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        onClick={() => setSobelRefinement(!sobelRefinement)}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            padding: '12px',
+                                            backgroundColor: sobelRefinement ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-tertiary)',
+                                            border: `1px solid ${sobelRefinement ? 'var(--accent)' : 'var(--border)'}`,
+                                            borderRadius: '8px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease',
+                                            width: '100%'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <Target size={16} color={sobelRefinement ? 'var(--accent)' : 'var(--text-secondary)'} />
+                                            <span style={{ fontSize: '13px', fontWeight: '500', color: sobelRefinement ? 'var(--text-primary)' : 'var(--text-secondary)' }}>Sobel Contour</span>
+                                        </div>
+                                        <div style={{
+                                            width: '18px',
+                                            height: '18px',
+                                            borderRadius: '4px',
+                                            border: `2px solid ${sobelRefinement ? 'var(--accent)' : 'var(--text-secondary)'}`,
+                                            backgroundColor: sobelRefinement ? 'var(--accent)' : 'transparent',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}>
+                                            {sobelRefinement && <div style={{ width: '8px', height: '4px', borderLeft: '2px solid white', borderBottom: '2px solid white', transform: 'rotate(-45deg)', marginBottom: '2px' }} />}
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
 
                             {/* Process Button */}
                             <button
