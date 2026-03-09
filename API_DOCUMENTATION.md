@@ -41,6 +41,11 @@ Remove background from an uploaded image.
 | `mode` | String | No | Processing mode: `original`, `optimized`, or `custom` (default: `original`) |
 | `width` | Integer | No | Target width in pixels (only for `custom` mode) |
 | `height` | Integer | No | Target height in pixels (only for `custom` mode) |
+| `beautify` | Boolean | No | Enhance colors and contrast for catalog look (default: `false`) |
+| `sobel_refinement` | Boolean | No | Use Sobel filter to improve contour detection (default: `true`) |
+| `remove_background` | Boolean | No | Whether to remove the background (default: `true`) |
+| `compress` | Boolean | No | Compress output to 8-bit PNG (PNG-8) (default: `false`) |
+| `auto_crop` | Boolean | No | Trim transparency and pad to square (default: `false`) |
 
 **Modes:**
 - **original**: Preserves original image dimensions

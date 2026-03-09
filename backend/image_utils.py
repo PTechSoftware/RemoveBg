@@ -14,6 +14,9 @@ class ImageAgent:
         Applies Sobel filter to enhance edges.
         This can be used to refine the contour detection.
         """
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+            
         # Convert PIL to OpenCV (BGR)
         open_cv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
         
@@ -42,6 +45,9 @@ class ImageAgent:
         - Sharpens details
         - Auto-levels
         """
+        if image.mode not in ['RGB', 'RGBA']:
+            image = image.convert('RGBA')
+
         # 1. Enhance Color (Saturation) - Increase by 20%
         converter = ImageEnhance.Color(image)
         image = converter.enhance(1.2)
@@ -129,3 +135,60 @@ class ImageAgent:
 
         mask_np[:, :, 3] = refined_alpha
         return Image.fromarray(mask_np)
+
+    @staticmethod
+    def auto_crop(image: Image.Image) -> Image.Image:
+        """
+        Removes transparent margins and pads to square aspect ratio.
+        """
+        if image.mode != 'RGBA':
+            image = image.convert('RGBA')
+            
+        # 1. Trim transparency
+        bbox = image.getbbox()
+        if bbox:
+            image = image.crop(bbox)
+        
+        # 2. Make it square
+        width, height = image.size
+        if width == height:
+            return image
+            
+        new_size = max(width, height)
+        square_image = Image.new('RGBA', (new_size, new_size), (0, 0, 0, 0))
+        
+        # Center the image
+        left = (new_size - width) // 2
+        top = (new_size - height) // 2
+        square_image.paste(image, (left, top))
+        
+        return square_image
+
+    @staticmethod
+    def compress_png(image: Image.Image) -> Image.Image:
+        """
+        Compresses PNG by converting to 8-bit paletted image (PNG-8).
+        This significantly reduces file size while preserving transparency.
+        """
+        if image.mode != 'RGBA':
+            image = image.convert('RGBA')
+            
+        # Separate alpha channel
+        alpha = image.split()[3]
+        
+        # Convert RGB part to 256 colors
+        image_rgb = image.convert('RGB')
+        image_p = image_rgb.convert('P', palette=Image.ADAPTIVE, colors=255)
+        
+        # Put alpha back (PIL's P mode can handle transparency but this is a safer way 
+        # to ensure high quality)
+        # Actually, standard PNG-8 transparency is binary (0 or 255).
+        # To maintain smooth edges, we might want to keep RGBA but use optimization during save.
+        # But the user specifically asked for "PNG-8 of Photoshop (Cuantización a 256 colores)".
+        
+        # Better approach for PNG-8 with alpha in PIL:
+        try:
+            return image.quantize(colors=256, method=getattr(Image.Quantize, 'LIBIMAGEQUANT', None))
+        except Exception:
+            # Fallback for older PIL or missing quantization libraries
+            return image.convert('P', palette=Image.ADAPTIVE, colors=256)

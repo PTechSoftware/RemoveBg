@@ -1,28 +1,18 @@
 version: '3.8'
 
 services:
-  backend:
-    build: ./backend
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: image-processor-server
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app
       - u2net_cache:/root/.u2net
     environment:
       - PYTHONUNBUFFERED=1
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "5173:5173"
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    environment:
-      - CHOKIDAR_USEPOLLING=true
+    restart: unless-stopped
 
 volumes:
   u2net_cache:

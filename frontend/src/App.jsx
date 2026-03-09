@@ -12,6 +12,8 @@ function App() {
     const [sobelRefinement, setSobelRefinement] = useState(true);
     const [removeBackground, setRemoveBackground] = useState(true);
     const [dragActive, setDragActive] = useState(false);
+    const [compress, setCompress] = useState(false);
+    const [autoCrop, setAutoCrop] = useState(true);
     const [overallProgress, setOverallProgress] = useState(0);
     const fileInputRef = useRef(null);
 
@@ -91,6 +93,8 @@ function App() {
                 formData.append('beautify', beautify);
                 formData.append('sobel_refinement', sobelRefinement);
                 formData.append('remove_background', removeBackground);
+                formData.append('compress', compress);
+                formData.append('auto_crop', autoCrop);
 
                 try {
                     const response = await fetch('/process-image', {
@@ -123,7 +127,7 @@ function App() {
     const downloadImage = (url, originalName) => {
         const a = document.createElement('a');
         a.href = url;
-        a.download = `nobg_${originalName.replace(/\.[^/.]+$/, "")}.png`;
+        a.download = `${originalName.replace(/\.[^/.]+$/, "")}.png`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -135,7 +139,7 @@ function App() {
 
         files.forEach(file => {
             if (file.resultBlob) {
-                const fileName = `proc_${file.file.name.replace(/\.[^/.]+$/, "")}.png`;
+                const fileName = `${file.file.name.replace(/\.[^/.]+$/, "")}.png`;
                 zip.file(fileName, file.resultBlob);
                 hasFiles = true;
             }
@@ -498,13 +502,88 @@ function App() {
                                             width: '18px',
                                             height: '18px',
                                             borderRadius: '4px',
-                                            border: `2px solid ${removeBackground ? 'var(--accent)' : 'var(--border)'}`,
+                                            border: `2px solid ${removeBackground ? 'var(--accent)' : 'var(--text-secondary)'}`,
                                             backgroundColor: removeBackground ? 'var(--accent)' : 'transparent',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center'
                                         }}>
                                             {removeBackground && <div style={{ width: '8px', height: '4px', borderLeft: '2px solid white', borderBottom: '2px solid white', transform: 'rotate(-45deg)', marginBottom: '2px' }} />}
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        onClick={() => setAutoCrop(!autoCrop)}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            padding: '12px',
+                                            backgroundColor: autoCrop ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-tertiary)',
+                                            border: `1px solid ${autoCrop ? 'var(--accent)' : 'var(--border)'}`,
+                                            borderRadius: '8px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease',
+                                            width: '100%'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={autoCrop ? 'var(--accent)' : 'var(--text-secondary)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M6 2v14a2 2 0 0 0 2 2h14"></path>
+                                                <path d="M18 22V8a2 2 0 0 0-2-2H2"></path>
+                                            </svg>
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                                <span style={{ fontSize: '13px', fontWeight: '500', color: autoCrop ? 'var(--text-primary)' : 'var(--text-secondary)' }}>Auto-Crop & Square</span>
+                                                {autoCrop && <span style={{ fontSize: '10px', color: 'var(--accent)', marginTop: '-2px' }}>Perfectly centered & squared</span>}
+                                            </div>
+                                        </div>
+                                        <div style={{
+                                            width: '18px',
+                                            height: '18px',
+                                            borderRadius: '4px',
+                                            border: `2px solid ${autoCrop ? 'var(--accent)' : 'var(--text-secondary)'}`,
+                                            backgroundColor: autoCrop ? 'var(--accent)' : 'transparent',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}>
+                                            {autoCrop && <div style={{ width: '8px', height: '4px', borderLeft: '2px solid white', borderBottom: '2px solid white', transform: 'rotate(-45deg)', marginBottom: '2px' }} />}
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        onClick={() => setCompress(!compress)}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            padding: '12px',
+                                            backgroundColor: compress ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-tertiary)',
+                                            border: `1px solid ${compress ? 'var(--accent)' : 'var(--border)'}`,
+                                            borderRadius: '8px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease',
+                                            width: '100%'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <FileArchive size={16} color={compress ? 'var(--accent)' : 'var(--text-secondary)'} />
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                                <span style={{ fontSize: '13px', fontWeight: '500', color: compress ? 'var(--text-primary)' : 'var(--text-secondary)' }}>PNG-8 Compression</span>
+                                                {compress && <span style={{ fontSize: '10px', color: 'var(--accent)', marginTop: '-2px' }}>Photoshop quality quantization</span>}
+                                            </div>
+                                        </div>
+                                        <div style={{
+                                            width: '18px',
+                                            height: '18px',
+                                            borderRadius: '4px',
+                                            border: `2px solid ${compress ? 'var(--accent)' : 'var(--text-secondary)'}`,
+                                            backgroundColor: compress ? 'var(--accent)' : 'transparent',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}>
+                                            {compress && <div style={{ width: '8px', height: '4px', borderLeft: '2px solid white', borderBottom: '2px solid white', transform: 'rotate(-45deg)', marginBottom: '2px' }} />}
                                         </div>
                                     </button>
                                 </div>

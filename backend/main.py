@@ -70,7 +70,9 @@ async def process_image(
     height: int = Form(None, description="Target height in pixels (only for custom mode)"),
     beautify: bool = Form(False, description="Apply beautification for catalog quality"),
     sobel_refinement: bool = Form(True, description="Use Sobel filtering to reinforce contours"),
-    remove_background: bool = Form(True, description="Whether to remove the background")
+    remove_background: bool = Form(True, description="Whether to remove the background"),
+    compress: bool = Form(False, description="Compress PNG output (PNG-8)"),
+    auto_crop: bool = Form(False, description="Remove transparent borders")
 ):
     """
     Remove background from an uploaded image using AI.
@@ -113,6 +115,10 @@ async def process_image(
         # Read image
         contents = await file.read()
         input_image = Image.open(io.BytesIO(contents))
+        
+        # Ensure we are in a mode that supports processing
+        if input_image.mode not in ("RGB", "RGBA"):
+            input_image = input_image.convert("RGBA")
 
         # 1. Beautification Agent (Optional)
         if beautify:
@@ -129,6 +135,10 @@ async def process_image(
         else:
             # If we don't remove background, the output is just the (optionally beautified) input
             output_image = input_image
+
+        # 4. Auto Crop (Optional)
+        if auto_crop:
+            output_image = ImageAgent.auto_crop(output_image)
 
         # Handle Resizing
         if mode == "custom" and width is not None and height is not None:
@@ -148,9 +158,13 @@ async def process_image(
             
             output_image = output_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
         
+        # 6. Compression (Optional)
+        if compress:
+            output_image = ImageAgent.compress_png(output_image)
+
         # Return as PNG with optimization for smaller file size
         img_byte_arr = io.BytesIO()
-        if mode == "optimized":
+        if mode == "optimized" or compress:
             # Optimize PNG for smaller file size
             output_image.save(img_byte_arr, format='PNG', optimize=True)
         else:
@@ -175,6 +189,10 @@ if os.path.isdir("static"):
     if os.path.isdir("static/assets"):
         app.mount("/assets", StaticFiles(directory="static/assets"), name="assets")
     
+    @app.get("/")
+    async def serve_index():
+        return FileResponse("static/index.html")
+
     # Catch-all route for SPA (React Router)
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):
