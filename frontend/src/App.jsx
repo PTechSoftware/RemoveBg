@@ -14,6 +14,10 @@ function App() {
     const [dragActive, setDragActive] = useState(false);
     const [compress, setCompress] = useState(false);
     const [autoCrop, setAutoCrop] = useState(true);
+    const [brightness, setBrightness] = useState(1);
+    const [saturation, setSaturation] = useState(1);
+    const [sharpness, setSharpness] = useState(1);
+    const [bgModel, setBgModel] = useState('u2net');
     const [overallProgress, setOverallProgress] = useState(0);
     const fileInputRef = useRef(null);
 
@@ -91,7 +95,11 @@ function App() {
                     formData.append('height', height);
                 }
                 formData.append('beautify', beautify);
+                formData.append('brightness', brightness);
+                formData.append('saturation', saturation);
+                formData.append('sharpness', sharpness);
                 formData.append('sobel_refinement', sobelRefinement);
+                formData.append('bg_model', bgModel);
                 formData.append('remove_background', removeBackground);
                 formData.append('compress', compress);
                 formData.append('auto_crop', autoCrop);
@@ -399,6 +407,79 @@ function App() {
                                 </div>
                             )}
 
+                            {/* Manual Adjustments */}
+                            <div style={{ marginBottom: '24px' }}>
+                                <label style={{
+                                    display: 'block',
+                                    fontSize: '13px',
+                                    fontWeight: '500',
+                                    marginBottom: '12px',
+                                    color: 'var(--text-secondary)'
+                                }}>
+                                    Ajustes Manuales
+                                </label>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', backgroundColor: 'var(--bg-tertiary)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                            <label style={{ fontSize: '12px', fontWeight: '500', color: 'var(--text-primary)' }}>Brillo</label>
+                                            <span style={{ fontSize: '12px', color: 'var(--accent)' }}>{brightness.toFixed(1)}</span>
+                                        </div>
+                                        <input 
+                                            type="range" 
+                                            min="0" max="2" step="0.1" 
+                                            value={brightness} 
+                                            onChange={(e) => setBrightness(parseFloat(e.target.value))}
+                                            style={{ width: '100%', accentColor: 'var(--accent)' }}
+                                            title="Controla el brillo"
+                                        />
+                                    </div>
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                            <label style={{ fontSize: '12px', fontWeight: '500', color: 'var(--text-primary)' }}>Saturación</label>
+                                            <span style={{ fontSize: '12px', color: 'var(--accent)' }}>{saturation.toFixed(1)}</span>
+                                        </div>
+                                        <input 
+                                            type="range" 
+                                            min="0" max="2" step="0.1" 
+                                            value={saturation} 
+                                            onChange={(e) => setSaturation(parseFloat(e.target.value))}
+                                            style={{ width: '100%', accentColor: 'var(--accent)' }}
+                                            title="Controla la saturación"
+                                        />
+                                    </div>
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                            <label style={{ fontSize: '12px', fontWeight: '500', color: 'var(--text-primary)' }}>Nitidez</label>
+                                            <span style={{ fontSize: '12px', color: 'var(--accent)' }}>{sharpness.toFixed(1)}</span>
+                                        </div>
+                                        <input 
+                                            type="range" 
+                                            min="0" max="3" step="0.1" 
+                                            value={sharpness} 
+                                            onChange={(e) => setSharpness(parseFloat(e.target.value))}
+                                            style={{ width: '100%', accentColor: 'var(--accent)' }}
+                                            title="Controla la nitidez"
+                                        />
+                                    </div>
+                                    {(brightness !== 1 || saturation !== 1 || sharpness !== 1) && (
+                                        <button 
+                                            onClick={() => { setBrightness(1); setSaturation(1); setSharpness(1); }}
+                                            style={{ 
+                                                fontSize: '11px', 
+                                                color: 'var(--accent)', 
+                                                background: 'transparent', 
+                                                border: 'none', 
+                                                cursor: 'pointer',
+                                                textAlign: 'right',
+                                                padding: '4px 0'
+                                            }}
+                                        >
+                                            Restablecer
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
                             {/* Additional Features */}
                             <div style={{ marginBottom: '24px' }}>
                                 <label style={{
@@ -479,38 +560,64 @@ function App() {
                                         </div>
                                     </button>
 
-                                    <button
-                                        onClick={() => setRemoveBackground(!removeBackground)}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between',
-                                            padding: '12px',
-                                            backgroundColor: removeBackground ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-tertiary)',
-                                            border: `1px solid ${removeBackground ? 'var(--accent)' : 'var(--border)'}`,
-                                            borderRadius: '8px',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s ease',
-                                            width: '100%'
-                                        }}
-                                    >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <Eraser size={16} color={removeBackground ? 'var(--accent)' : 'var(--text-secondary)'} />
-                                            <span style={{ fontSize: '13px', fontWeight: '500', color: removeBackground ? 'var(--text-primary)' : 'var(--text-secondary)' }}>Remove Background</span>
-                                        </div>
-                                        <div style={{
-                                            width: '18px',
-                                            height: '18px',
-                                            borderRadius: '4px',
-                                            border: `2px solid ${removeBackground ? 'var(--accent)' : 'var(--text-secondary)'}`,
-                                            backgroundColor: removeBackground ? 'var(--accent)' : 'transparent',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center'
-                                        }}>
-                                            {removeBackground && <div style={{ width: '8px', height: '4px', borderLeft: '2px solid white', borderBottom: '2px solid white', transform: 'rotate(-45deg)', marginBottom: '2px' }} />}
-                                        </div>
-                                    </button>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <button
+                                            onClick={() => setRemoveBackground(!removeBackground)}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                padding: '12px',
+                                                backgroundColor: removeBackground ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-tertiary)',
+                                                border: `1px solid ${removeBackground ? 'var(--accent)' : 'var(--border)'}`,
+                                                borderRadius: '8px',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s ease',
+                                                width: '100%'
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <Eraser size={16} color={removeBackground ? 'var(--accent)' : 'var(--text-secondary)'} />
+                                                <span style={{ fontSize: '13px', fontWeight: '500', color: removeBackground ? 'var(--text-primary)' : 'var(--text-secondary)' }}>Remove Background</span>
+                                            </div>
+                                            <div style={{
+                                                width: '18px',
+                                                height: '18px',
+                                                borderRadius: '4px',
+                                                border: `2px solid ${removeBackground ? 'var(--accent)' : 'var(--text-secondary)'}`,
+                                                backgroundColor: removeBackground ? 'var(--accent)' : 'transparent',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}>
+                                                {removeBackground && <div style={{ width: '8px', height: '4px', borderLeft: '2px solid white', borderBottom: '2px solid white', transform: 'rotate(-45deg)', marginBottom: '2px' }} />}
+                                            </div>
+                                        </button>
+                                        
+                                        {removeBackground && (
+                                            <div style={{ padding: '8px 12px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border)' }} className="fade-in">
+                                                <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', marginBottom: '6px', color: 'var(--text-secondary)' }}>AI Model</label>
+                                                <select 
+                                                    value={bgModel}
+                                                    onChange={(e) => setBgModel(e.target.value)}
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '8px',
+                                                        backgroundColor: 'var(--bg-secondary)',
+                                                        border: '1px solid var(--border)',
+                                                        borderRadius: '6px',
+                                                        color: 'var(--text-primary)',
+                                                        fontSize: '12px',
+                                                        outline: 'none'
+                                                    }}
+                                                >
+                                                    <option value="u2net">U2NET (Standardizado)</option>
+                                                    <option value="isnet-general-use">ISNet (Mejor para Objetos)</option>
+                                                    <option value="silueta">Silueta (Más rápido)</option>
+                                                </select>
+                                            </div>
+                                        )}
+                                    </div>
 
                                     <button
                                         onClick={() => setAutoCrop(!autoCrop)}

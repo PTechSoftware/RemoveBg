@@ -3,11 +3,19 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
 from fastapi.middleware.cors import CORSMiddleware
-from rembg import remove
+from rembg import remove, new_session
 from PIL import Image
 import io
 import uvicorn
 from image_utils import ImageAgent
+
+model_sessions = {}
+
+def get_model_session(model_name: str):
+    if model_name not in model_sessions:
+        print(f"Loading rembg model: {model_name}")
+        model_sessions[model_name] = new_session(model_name)
+    return model_sessions[model_name]
 
 app = FastAPI(
     title="Background Remover API",
@@ -69,8 +77,12 @@ async def process_image(
     width: int = Form(None, description="Target width in pixels (only for custom mode)"),
     height: int = Form(None, description="Target height in pixels (only for custom mode)"),
     beautify: bool = Form(False, description="Apply beautification for catalog quality"),
+    brightness: float = Form(1.0, description="Brightness multiplier"),
+    saturation: float = Form(1.0, description="Saturation multiplier"),
+    sharpness: float = Form(1.0, description="Sharpness multiplier"),
     sobel_refinement: bool = Form(True, description="Use Sobel filtering to reinforce contours"),
     remove_background: bool = Form(True, description="Whether to remove the background"),
+    bg_model: str = Form("u2net", description="Model for background removal"),
     compress: bool = Form(False, description="Compress PNG output (PNG-8)"),
     auto_crop: bool = Form(False, description="Remove transparent borders")
 ):
@@ -120,6 +132,10 @@ async def process_image(
         if input_image.mode not in ("RGB", "RGBA"):
             input_image = input_image.convert("RGBA")
 
+        # 0. Apply manual adjustments (Brightness, Saturation, Sharpness)
+        if brightness != 1.0 or saturation != 1.0 or sharpness != 1.0:
+            input_image = ImageAgent.adjust_image(input_image, brightness, saturation, sharpness)
+
         # 1. Beautification Agent (Optional)
         if beautify:
             input_image = ImageAgent.beautify(input_image)
@@ -127,7 +143,8 @@ async def process_image(
         # 2. Background Removal & Reinforcement
         if remove_background:
             # Remove background using rembg
-            output_image = remove(input_image, alpha_matting=sobel_refinement)
+            session = get_model_session(bg_model)
+            output_image = remove(input_image, session=session, alpha_matting=sobel_refinement)
 
             # 3. Sobel Edge Reinforcement
             if sobel_refinement:

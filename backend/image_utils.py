@@ -37,6 +37,28 @@ class ImageAgent:
         return Image.fromarray(sobel_normalized)
 
     @staticmethod
+    def adjust_image(image: Image.Image, brightness: float = 1.0, saturation: float = 1.0, sharpness: float = 1.0) -> Image.Image:
+        """
+        Adjusts brightness, saturation, and sharpness based on user input.
+        """
+        if image.mode not in ['RGB', 'RGBA']:
+            image = image.convert('RGBA')
+
+        if brightness != 1.0:
+            converter = ImageEnhance.Brightness(image)
+            image = converter.enhance(brightness)
+        
+        if saturation != 1.0:
+            converter = ImageEnhance.Color(image)
+            image = converter.enhance(saturation)
+            
+        if sharpness != 1.0:
+            converter = ImageEnhance.Sharpness(image)
+            image = converter.enhance(sharpness)
+            
+        return image
+
+    @staticmethod
     def beautify(image: Image.Image) -> Image.Image:
         """
         Beautifies the image for a catalog:
