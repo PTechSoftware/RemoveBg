@@ -171,7 +171,7 @@ function App() {
     const completedCount = files.filter(f => f.status === 'completed').length;
 
     return (
-        <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>
+        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-primary)', overflow: 'hidden' }}>
             {/* Header */}
             <header style={{
                 borderBottom: '1px solid var(--border)',
@@ -258,18 +258,19 @@ function App() {
             </header>
 
             {/* Main Content */}
-            <main style={{ maxWidth: '1400px', margin: '0 auto', padding: '32px 24px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px' }}>
+            <main style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
+                <div style={{ flex: 1, maxWidth: '1400px', margin: '0 auto', padding: '0 24px', display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px', width: '100%' }}>
 
                     {/* Sidebar - Settings */}
-                    <aside>
+                    <aside style={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', paddingTop: '32px', paddingBottom: '32px' }}>
                         <div style={{
                             backgroundColor: 'var(--bg-secondary)',
                             border: '1px solid var(--border)',
                             borderRadius: '12px',
                             padding: '24px',
-                            position: 'sticky',
-                            top: '24px'
+                            flex: 1,
+                            overflowY: 'auto',
+                            minHeight: 0
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px' }}>
                                 <Settings2 size={20} color="var(--text-secondary)" />
@@ -831,7 +832,7 @@ function App() {
                     </aside>
 
                     {/* Main Area */}
-                    <div>
+                    <div style={{ height: '100%', overflowY: 'auto', paddingTop: '32px', paddingBottom: '32px' }}>
                         {/* Upload Zone */}
                         <div
                             onDragEnter={handleDrag}
