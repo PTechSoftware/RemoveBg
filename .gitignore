@@ -16,3 +16,6 @@ dist/
 
 # Docker
 .docker_data/
+
+# Models local dir
+backend/models/

@@ -614,6 +614,7 @@ function App() {
                                                     <option value="u2net">U2NET (Standardizado)</option>
                                                     <option value="isnet-general-use">ISNet (Mejor para Objetos)</option>
                                                     <option value="silueta">Silueta (Más rápido)</option>
+                                                    <option value="sam">Mobile SAM3 ONNX (Alta Precisión)</option>
                                                 </select>
                                             </div>
                                         )}

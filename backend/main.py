@@ -1,24 +1,52 @@
+import os
+
+# Configurar directorio local de los modelos ONNX (antes de importar rembg)
+if "U2NET_HOME" not in os.environ:
+    os.environ["U2NET_HOME"] = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
+
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-import os
 from fastapi.middleware.cors import CORSMiddleware
 from rembg import remove, new_session
 from PIL import Image
 import io
 import uvicorn
+from contextlib import asynccontextmanager
+import concurrent.futures
 from image_utils import ImageAgent
 
 model_sessions = {}
 
 def get_model_session(model_name: str):
+    # Map SAM3 requests to the rembg SAM session which handles ONNX internally
+    if model_name.lower() in ["sam3", "mobile_sam"]:
+        model_name = "sam"
+        
     if model_name not in model_sessions:
-        print(f"Loading rembg model: {model_name}")
-        model_sessions[model_name] = new_session(model_name)
+        print(f"Loading rembg model: {model_name}...")
+        # Al forzar el CPUExecutionProvider explícitamente evitamos que onnxruntime  
+        # demore buscando drivers de GPU (CUDA/TensorRT) que no existen o están mal configurados
+        model_sessions[model_name] = new_session(model_name, providers=["CPUExecutionProvider"])
+        print(f"Model {model_name} loaded successfully!")
     return model_sessions[model_name]
 
+def preload_models():
+    models_to_preload = ["u2net", "sam"]
+    for m in models_to_preload:
+        get_model_session(m)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Preload models in the background to avoid blocking the API startup
+    with concurrent.futures.ThreadPoolExecutor() as pool:
+        pool.submit(preload_models)
+    yield
+    model_sessions.clear()
+
 app = FastAPI(
-    title="Background Remover API",
+    title="Background Remover API",    
+    lifespan=lifespan,
     description="""
     ## AI-Powered Background Removal Service
     
@@ -144,7 +172,20 @@ async def process_image(
         if remove_background:
             # Remove background using rembg
             session = get_model_session(bg_model)
-            output_image = remove(input_image, session=session, alpha_matting=sobel_refinement)
+            
+            rembg_kwargs = {}
+            if bg_model.lower() in ["sam", "sam3", "mobile_sam"]:
+                # Adapt the prompt: Use a rectangle covering almost the whole image to segment the COMPLETE article
+                width, height = input_image.size
+                margin = int(min(width, height) * 0.02) # 2% inner margin
+                rembg_kwargs["sam_prompt"] = [
+                    {
+                        "type": "rectangle",
+                        "data": [margin, margin, width - margin, height - margin]
+                    }
+                ]
+                
+            output_image = remove(input_image, session=session, alpha_matting=sobel_refinement, **rembg_kwargs)
 
             # 3. Sobel Edge Reinforcement
             if sobel_refinement:
