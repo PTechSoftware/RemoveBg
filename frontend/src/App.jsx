@@ -18,6 +18,7 @@ function App() {
     const [saturation, setSaturation] = useState(1);
     const [sharpness, setSharpness] = useState(1);
     const [bgModel, setBgModel] = useState('u2net');
+    const [samIncludeCardboard, setSamIncludeCardboard] = useState(true);
     const [overallProgress, setOverallProgress] = useState(0);
     const fileInputRef = useRef(null);
 
@@ -100,6 +101,7 @@ function App() {
                 formData.append('sharpness', sharpness);
                 formData.append('sobel_refinement', sobelRefinement);
                 formData.append('bg_model', bgModel);
+                formData.append('sam_include_cardboard', samIncludeCardboard);
                 formData.append('remove_background', removeBackground);
                 formData.append('compress', compress);
                 formData.append('auto_crop', autoCrop);
@@ -616,6 +618,48 @@ function App() {
                                                     <option value="silueta">Silueta (Más rápido)</option>
                                                     <option value="sam">Mobile SAM3 ONNX (Alta Precisión)</option>
                                                 </select>
+                                                
+                                                {bgModel === 'sam' && (
+                                                    <div style={{ marginTop: '12px', padding: '10px', backgroundColor: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid rgba(59, 130, 246, 0.3)' }} className="fade-in">
+                                                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', marginBottom: '8px', color: 'var(--text-secondary)' }}>Modo de Recorte SAM</label>
+                                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); setSamIncludeCardboard(true); }}
+                                                                style={{
+                                                                    flex: 1,
+                                                                    padding: '6px',
+                                                                    borderRadius: '4px',
+                                                                    fontSize: '11px',
+                                                                    fontWeight: '500',
+                                                                    backgroundColor: samIncludeCardboard ? 'var(--accent)' : 'transparent',
+                                                                    color: samIncludeCardboard ? 'white' : 'var(--text-secondary)',
+                                                                    border: '1px solid',
+                                                                    borderColor: samIncludeCardboard ? 'var(--accent)' : 'var(--border)',
+                                                                    cursor: 'pointer'
+                                                                }}
+                                                            >
+                                                                Con Cartón
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); setSamIncludeCardboard(false); }}
+                                                                style={{
+                                                                    flex: 1,
+                                                                    padding: '6px',
+                                                                    borderRadius: '4px',
+                                                                    fontSize: '11px',
+                                                                    fontWeight: '500',
+                                                                    backgroundColor: !samIncludeCardboard ? 'var(--accent)' : 'transparent',
+                                                                    color: !samIncludeCardboard ? 'white' : 'var(--text-secondary)',
+                                                                    border: '1px solid',
+                                                                    borderColor: !samIncludeCardboard ? 'var(--accent)' : 'var(--border)',
+                                                                    cursor: 'pointer'
+                                                                }}
+                                                            >
+                                                                Sin Cartón
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>

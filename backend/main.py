@@ -112,7 +112,8 @@ async def process_image(
     remove_background: bool = Form(True, description="Whether to remove the background"),
     bg_model: str = Form("u2net", description="Model for background removal"),
     compress: bool = Form(False, description="Compress PNG output (PNG-8)"),
-    auto_crop: bool = Form(False, description="Remove transparent borders")
+    auto_crop: bool = Form(False, description="Remove transparent borders"),
+    sam_include_cardboard: bool = Form(True, description="Include packaging/cardboard when using SAM")
 ):
     """
     Remove background from an uploaded image using AI.
@@ -175,15 +176,31 @@ async def process_image(
             
             rembg_kwargs = {}
             if bg_model.lower() in ["sam", "sam3", "mobile_sam"]:
-                # Adapt the prompt: Use a rectangle covering almost the whole image to segment the COMPLETE article
                 width, height = input_image.size
-                margin = int(min(width, height) * 0.02) # 2% inner margin
-                rembg_kwargs["sam_prompt"] = [
-                    {
-                        "type": "rectangle",
-                        "data": [margin, margin, width - margin, height - margin]
-                    }
-                ]
+                if sam_include_cardboard:
+                    # Capturar el objeto principal mas el carton (margen y punto central)
+                    margin_x = int(width * 0.05)
+                    margin_y = int(height * 0.05)
+                    rembg_kwargs["sam_prompt"] = [
+                        {
+                            "type": "rectangle",
+                            "data": [margin_x, margin_y, width - margin_x, height - margin_y]
+                        },
+                        {
+                            "type": "point",
+                            "label": 1,
+                            "data": [int(width / 2), int(height / 2)]
+                        }
+                    ]
+                else:
+                    # Capturar unicamente el objeto en el centro (sin carton)
+                    rembg_kwargs["sam_prompt"] = [
+                        {
+                            "type": "point",
+                            "label": 1,
+                            "data": [int(width / 2), int(height / 2)]
+                        }
+                    ]
                 
             output_image = remove(input_image, session=session, alpha_matting=sobel_refinement, **rembg_kwargs)
 
