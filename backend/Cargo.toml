@@ -1,0 +1,35 @@
+[package]
+name = "removebg-backend"
+version = "1.0.0"
+edition = "2021"
+description = "AI-Powered Background Removal Backend in Rust using Hexagonal Architecture, Actix-Web, and ONNX Runtime"
+
+[dependencies]
+# Web Framework (Driving Adapter)
+actix-web = "4"
+actix-cors = "0.7"
+actix-multipart = "0.7"
+actix-files = "0.6"
+futures-util = "0.3"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "fs"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# ONNX Runtime (Driven Adapter for ML Inference)
+ort = { version = "2.0.0-rc.15", default-features = false, features = ["std", "download-binaries", "copy-dylibs", "tls-native"] }
+
+# Image Processing (Driven Adapter for Computer Vision, PNG-8, Lossless Optimization & Vectorization)
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
+imagequant = "4"
+png = "0.17"
+oxipng = { version = "9.1", default-features = false, features = ["parallel", "zopfli"] }
+vtracer = "0.6.4"
+visioncortex = "0.8"
+
+# Utilities & Concurrency
+thiserror = "2"
+parking_lot = "0.12"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

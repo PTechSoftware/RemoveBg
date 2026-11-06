@@ -1,0 +1,19 @@
+# Rust build artifacts
+backend/target/
+
+# Local ONNX models (mounted via volume in docker-compose.yml to avoid 870MB build context)
+backend/models/
+
+# Node build artifacts
+frontend/node_modules/
+frontend/dist/
+
+# Backup folders
+backend copy/
+frontend copy/
+
+# Git & IDE
+.git/
+.vscode/
+.idea/
+*.log
